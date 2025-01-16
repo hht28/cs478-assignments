@@ -2,6 +2,7 @@ import express from "express";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import * as url from "url";
+import { z } from "zod";
 let app = express();
 app.use(express.json());
 // create database "connection"
@@ -14,66 +15,63 @@ let db = await open({
     driver: sqlite3.Database,
 });
 await db.get("PRAGMA foreign_keys = ON");
-//
-// SQLITE EXAMPLES
-// comment these out or they'll keep inserting every time you run your server
-// if you get 'UNIQUE constraint failed' errors it's because
-// this will keep inserting a row with the same primary key
-// but the primary key should be unique
-//
-// insert example
-await db.run("INSERT INTO authors(id, name, bio) VALUES('1', 'Figginsworth III', 'A traveling gentleman.')");
-await db.run("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES ('1', '1', 'My Fairest Lady', '1866', 'romance')");
-// insert example with parameterized queries
-// important to use parameterized queries to prevent SQL injection
-// when inserting untrusted data
-let statement = await db.prepare("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES (?, ?, ?, ?, ?)");
-await statement.bind(["2", "1", "A Travelogue of Tales", "1867", "adventure"]);
-await statement.run();
-// select examples
-let authors = await db.all("SELECT * FROM authors");
-console.log("Authors", authors);
-let books = await db.all("SELECT * FROM books WHERE author_id = '1'");
-console.log("Books", books);
-let filteredBooks = await db.all("SELECT * FROM books WHERE pub_year = '1867'");
-console.log("Some books", filteredBooks);
-// res's type limits what responses this request handler can send
-// it must send either an object with a message or an error
-app.get("/foo", (req, res) => {
-    if (!req.query.bar) {
-        return res.status(400).json({ error: "bar is required" });
-    }
-    return res.json({ message: `You sent: ${req.query.bar} in the query` });
+// the schemas
+let authorSchema = z.object({
+    id: z.number().int().optional(),
+    name: z.string(),
+    bio: z.string(),
 });
-app.post("/foo", (req, res) => {
-    if (!req.body.bar) {
-        return res.status(400).json({ error: "bar is required" });
-    }
-    return res.json({ message: `You sent: ${req.body.bar} in the body` });
+let bookSchema = z.object({
+    id: z.number().int().optional(),
+    author_id: z.number().int(),
+    title: z.string(),
+    pub_year: z.string().regex(/^\d{4}$/, "Invalid year format"),
+    genre: z.string(),
 });
-app.delete("/foo", (req, res) => {
-    // etc.
-    res.sendStatus(200);
-});
-//
-// ASYNC/AWAIT EXAMPLE
-//
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+function parseError(zodError) {
+    let { formErrors, fieldErrors } = zodError.flatten();
+    return [
+        ...formErrors,
+        ...Object.entries(fieldErrors).map(([property, message]) => `"${property}": ${message}`),
+    ];
 }
-// need async keyword on request handler to use await inside it
-app.get("/bar", async (req, res) => {
-    console.log("Waiting...");
-    // await is equivalent to calling sleep.then(() => { ... })
-    // and putting all the code after this in that func body ^
-    await sleep(3000);
-    // if we omitted the await, all of this code would execute
-    // immediately without waiting for the sleep to finish
-    console.log("Done!");
-    return res.sendStatus(200);
+// add author
+app.post("/authors", async (req, res) => {
+    let parseResult = authorSchema.omit({ id: true }).safeParse(req.body); // exclude id for validation cus it's auto generated
+    if (!parseResult.success) {
+        return res.status(400).json({ errors: parseError(parseResult.error) });
+    }
+    let { name, bio } = parseResult.data;
+    try {
+        let result = await db.run("INSERT INTO authors (id, name, bio) VALUES (?, ?, ?)", [null, name, bio]);
+        let newAuthor = await db.get("SELECT * FROM authors WHERE id = ?", result.lastID);
+        res.status(201).json(newAuthor);
+    }
+    catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
-// test it out! while server is running:
-// curl http://localhost:3000/bar
+// get all authors
+app.get("/authors", async (req, res) => {
+    let authors = await db.all("SELECT * FROM authors");
+    res.json(authors);
+});
+// get an author by ID
+app.get("/authors/:id", async (req, res) => {
+    let { id } = req.params;
+    let author = await db.get("SELECT * FROM authors WHERE id = ?", id);
+    if (!author)
+        return res.status(404).json({ error: "Author not found" });
+    res.json(author);
+});
+// delete an author by ID
+app.delete("/authors/:id", async (req, res) => {
+    let { id } = req.params;
+    let result = await db.run("DELETE FROM authors WHERE id = ?", id);
+    if (result.changes === 0)
+        return res.status(404).json({ error: "Author not found" });
+    res.json({ message: "Author deleted successfully" });
+});
 // run server
 let port = 3000;
 let host = "localhost";
