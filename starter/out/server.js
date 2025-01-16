@@ -22,18 +22,12 @@ await db.get("PRAGMA foreign_keys = ON");
 // but the primary key should be unique
 //
 // insert example
-await db.run(
-    "INSERT INTO authors(id, name, bio) VALUES('1', 'Figginsworth III', 'A traveling gentleman.')",
-);
-await db.run(
-    "INSERT INTO books(id, author_id, title, pub_year, genre) VALUES ('1', '1', 'My Fairest Lady', '1866', 'romance')",
-);
+await db.run("INSERT INTO authors(id, name, bio) VALUES('1', 'Figginsworth III', 'A traveling gentleman.')");
+await db.run("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES ('1', '1', 'My Fairest Lady', '1866', 'romance')");
 // insert example with parameterized queries
 // important to use parameterized queries to prevent SQL injection
 // when inserting untrusted data
-let statement = await db.prepare(
-    "INSERT INTO books(id, author_id, title, pub_year, genre) VALUES (?, ?, ?, ?, ?)",
-);
+let statement = await db.prepare("INSERT INTO books(id, author_id, title, pub_year, genre) VALUES (?, ?, ?, ?, ?)");
 await statement.bind(["2", "1", "A Travelogue of Tales", "1867", "adventure"]);
 await statement.run();
 // select examples
