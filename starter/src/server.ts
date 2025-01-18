@@ -27,7 +27,7 @@ let authorSchema = z.object({
   
 let bookSchema = z.object({
     id: z.number().int().optional(),
-    author_id: z.number().int(), // `author_id` gotta match an existing author's ID
+    author_id: z.number().int(), // author_id gotta match an existing author's ID
     title: z.string(),
     pub_year: z.string().regex(/^\d{4}$/, "Invalid year format"),
     genre: z.enum(["adventure", "sci-fi", "romance", "mystery", "fantasy", "non-fiction"]),
@@ -71,7 +71,7 @@ app.get("/authors", async (req, res) => {
 app.get("/authors/:id", async (req, res) => {
     let { id } = req.params;
     let author = await db.get("SELECT * FROM authors WHERE id = ?", id);
-    if (!author) return res.status(404).json({ error: "Author not found" });
+    if (!author) return res.status(404).json({ error: "Author not found." });
     res.json(author);
   });
   
@@ -80,15 +80,11 @@ app.delete("/authors/:id", async (req, res) => {
     let { id } = req.params;
   
     try {
-      // Check if there are any books associated with the author
       let books = await db.all("SELECT * FROM books WHERE author_id = ?", id);
       if (books.length > 0) {
-        return res
-          .status(400)
-          .json({ error: "Cannot delete author with associated books." });
+        return res.status(400).json({ error: "Cannot delete author with associated books." });
       }
   
-      // Delete the author
       let result = await db.run("DELETE FROM authors WHERE id = ?", id);
   
       if (result.changes === 0) {
@@ -104,7 +100,7 @@ app.delete("/authors/:id", async (req, res) => {
   
 
 
-// Get all books with optional query filters
+// get all books with optional query filters
 app.get("/books", async (req, res) => {
     let { pub_year, genre } = req.query;
     let query = "SELECT * FROM books WHERE 1=1";
@@ -123,23 +119,24 @@ app.get("/books", async (req, res) => {
     res.json(books);
   });
   
-// Get a book by ID
+// get a book by id
 app.get("/books/:id", async (req, res) => {
     let { id } = req.params;
     let book = await db.get("SELECT * FROM books WHERE id = ?", id);
-    if (!book) return res.status(404).json({ error: "Book not found" });
+    if (!book) return res.status(404).json({ error: "Book not found." });
     res.json(book);
   });
 
-// Delete a book by ID
+// delete a book by id
 app.delete("/books/:id", async (req, res) => {
     let { id } = req.params;
     let result = await db.run("DELETE FROM books WHERE id = ?", id);
     if (result.changes === 0)
-      return res.status(404).json({ error: "Book not found" });
-    res.json({ message: "Book deleted successfully" });
+      return res.status(404).json({ error: "Book not found." });
+    res.json({ message: "Book deleted successfully." });
   });
 
+// add a book
 app.post("/books", async (req, res) => {
     let parseResult = bookSchema.omit({ id: true }).safeParse(req.body); // exclude id for validation cus it's auto generated
     if (!parseResult.success) {
