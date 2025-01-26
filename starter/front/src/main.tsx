@@ -4,7 +4,7 @@ import ReactDOM from "react-dom/client";
 import Layout from "./components/Layout";
 import NotFound from "./components/NotFound";
 import AddAuthorForm from "./components/AddAuthorForm";
-// import AddBookForm from "./components/AddBookForm";
+import AddBookForm from "./components/AddBookForm";
 import BooksTable from "./components/BooksTable";
 // import SearchBooks from "./components/SearchBooks";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
@@ -25,12 +25,12 @@ let router = createBrowserRouter([
         path: "/",
         element: <BooksTable />,
       },
+      {
+        path: "/add-book",
+        element: <AddBookForm />,
+      },
       // {
-      //   path: "/",
-      //   element: <AddBookForm />,
-      // },
-      // {
-      //   path: "/",
+      //   path: "/search-books",
       //   element: <SearchBooks />,
       // },
     ],

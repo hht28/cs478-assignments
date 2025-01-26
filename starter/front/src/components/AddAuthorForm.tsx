@@ -2,11 +2,11 @@ import { useState } from "react";
 import axios from "axios";
 
 export default function AddAuthorForm() {
-  const [name, setName] = useState("");
-  const [bio, setBio] = useState("");
-  const [message, setMessage] = useState("");
+  let [name, setName] = useState("");
+  let [bio, setBio] = useState("");
+  let [message, setMessage] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  let handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await axios.post("http://localhost:3000/authors", { name, bio });
