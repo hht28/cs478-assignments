@@ -1,8 +1,8 @@
 import './App.css'
 import AddAuthorForm from "./components/AddAuthorForm.tsx";
-import AddBookForm from "./components/AddBookForm.tsx";
-import BooksTable from "./components/BooksTable.tsx";
-import SearchBooks from "./components/SearchBooks.tsx";
+// import AddBookForm from "./components/AddBookForm.tsx";
+// import BooksTable from "./components/BooksTable.tsx";
+// import SearchBooks from "./components/SearchBooks.tsx";
 
 function App() {
   
@@ -10,9 +10,9 @@ function App() {
     <div>
       <h1>Library Management</h1>
       <AddAuthorForm />
-      <AddBookForm />
+      {/* <AddBookForm />
       <BooksTable />
-      <SearchBooks />
+      <SearchBooks /> */}
     </div>
   );
 }
