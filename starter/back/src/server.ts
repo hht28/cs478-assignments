@@ -3,8 +3,10 @@ import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import * as url from "url";
 import { z } from "zod";
+import cors from "cors";
 
 let app = express();
+app.use(cors());
 app.use(express.json());
 
 // create database "connection"
