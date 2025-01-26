@@ -40,10 +40,13 @@ export default function AddBookForm() {
   return (
     <form onSubmit={handleSubmit}>
       <h2>Add Book</h2>
+      <div>
       <label>
         Title:
         <input value={title} onChange={(e) => setTitle(e.target.value)} required />
       </label>
+      </div>
+      <div>
       <label>
         Author:
         <select value={authorId} onChange={(e) => setAuthorId(e.target.value)} required>
@@ -55,10 +58,14 @@ export default function AddBookForm() {
           ))}
         </select>
       </label>
+      </div>
+      <div>
       <label>
         Publication Year:
         <input value={pubYear} onChange={(e) => setPubYear(e.target.value)} required />
       </label>
+      </div>
+      <div>
       <label>
         Genre:
         <select value={genre} onChange={(e) => setGenre(e.target.value)} required>
@@ -71,6 +78,7 @@ export default function AddBookForm() {
           <option value="non-fiction">Non-Fiction</option>
         </select>
       </label>
+      </div>
       <button type="submit">Add Book</button>
       {message && <p>{message}</p>}
     </form>

@@ -21,14 +21,18 @@ export default function AddAuthorForm() {
   return (
     <form onSubmit={handleSubmit}>
       <h2>Add Author</h2>
+      <div>
       <label>
         Name:
         <input value={name} onChange={(e) => setName(e.target.value)} required />
       </label>
+      </div>
+      <div>
       <label>
         Bio:
         <textarea value={bio} onChange={(e) => setBio(e.target.value)} required />
       </label>
+      </div>
       <button type="submit">Add Author</button>
       {message && <p>{message}</p>}
     </form>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Book, Author } from "../types.ts";
+import "./BooksTable.css";
 
 export default function BooksTable() {
   let [books, setBooks] = useState<Book[]>([]);
@@ -45,6 +46,7 @@ export default function BooksTable() {
   return (
     <div>
       <h2>Books</h2>
+      <div id="books-table">
       <table>
         <thead>
           <tr>
@@ -67,6 +69,7 @@ export default function BooksTable() {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

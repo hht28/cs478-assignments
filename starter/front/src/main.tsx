@@ -1,4 +1,4 @@
-import './index.css'
+//import './index.css'
 import React from "react";
 import ReactDOM from "react-dom/client";
 import Layout from "./components/Layout";
@@ -6,7 +6,7 @@ import NotFound from "./components/NotFound";
 import AddAuthorForm from "./components/AddAuthorForm";
 import AddBookForm from "./components/AddBookForm";
 import BooksTable from "./components/BooksTable";
-// import SearchBooks from "./components/SearchBooks";
+import SearchBooks from "./components/SearchBooks";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 
 let router = createBrowserRouter([
@@ -29,10 +29,10 @@ let router = createBrowserRouter([
         path: "/add-book",
         element: <AddBookForm />,
       },
-      // {
-      //   path: "/search-books",
-      //   element: <SearchBooks />,
-      // },
+      {
+        path: "/search-books",
+        element: <SearchBooks />,
+      },
     ],
   },
 ]);

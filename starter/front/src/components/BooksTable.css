@@ -1,0 +1,21 @@
+#books-table table {
+    border-collapse: collapse;
+}
+#books-table td,
+th {
+    border: 1px solid black;
+    padding: 5px;
+}
+#books-table .widget-image {
+    width: 50px;
+    height: 50px;
+}
+
+#books-table label {
+    display: block;
+    margin: 1rem 0;
+}
+
+#books-table select {
+    margin: 0 1rem;
+}
