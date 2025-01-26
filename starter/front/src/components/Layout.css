@@ -1,0 +1,7 @@
+nav a {
+    display: block;
+}
+nav {
+    display: flex;
+    justify-content: space-around;
+}
