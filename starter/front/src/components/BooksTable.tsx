@@ -1,13 +1,32 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Book, Author } from "../types.ts";
-import "./BooksTable.css";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  Select,
+  MenuItem,
+  Snackbar,
+} from "@mui/material";
+
+let GENRE_OPTIONS = ["adventure", "sci-fi", "romance", "mystery", "fantasy", "non-fiction"];
 
 export default function BooksTable() {
   let [books, setBooks] = useState<Book[]>([]);
   let [authors, setAuthors] = useState<Author[]>([]);
   let [loading, setLoading] = useState(false);
   let [error, setError] = useState<string | null>(null);
+  let [editBook, setEditBook] = useState<Book | null>(null);
+  let [snackbarMessage, setSnackbarMessage] = useState("");
 
   useEffect(() => {
     let fetchBooksAndAuthors = async () => {
@@ -35,6 +54,40 @@ export default function BooksTable() {
     return author ? author.name : "Unknown Author";
   };
 
+  let handleEdit = async () => {
+    if (editBook) {
+      try {
+        let updatedBook = {
+          ...editBook,
+          author_id: Number(editBook.author_id),
+        };
+
+        await axios.patch(`http://localhost:3000/books/${editBook.id}`, updatedBook);
+        
+        setBooks((prevBooks) =>
+          prevBooks.map((b) => (b.id === editBook.id ? updatedBook : b))
+        );
+
+        setSnackbarMessage("Book updated successfully!");
+      } catch (error) {
+        setSnackbarMessage("Failed to update book.");
+      }
+      setEditBook(null);
+    }
+  };
+
+  let handleDelete = async (id: number) => {
+    if (window.confirm("Are you sure you want to delete this book?")) {
+      try {
+        await axios.delete(`http://localhost:3000/books/${id}`);
+        setBooks((prevBooks) => prevBooks.filter((book) => book.id !== id));
+        setSnackbarMessage("Book deleted successfully!");
+      } catch (error) {
+        setSnackbarMessage("Failed to delete book.");
+      }
+    }
+  };
+
   if (loading) {
     return <p>Loading...</p>;
   }
@@ -46,30 +99,103 @@ export default function BooksTable() {
   return (
     <div>
       <h2>Books</h2>
-      <div id="books-table">
-      <table>
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Author ID</th>
-            <th>Author Name</th>
-            <th>Publication Year</th>
-            <th>Genre</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Title</TableCell>
+            <TableCell>Author</TableCell>
+            <TableCell>Publication Year</TableCell>
+            <TableCell>Genre</TableCell>
+            <TableCell>Actions</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
           {books.map((book) => (
-            <tr key={book.id}>
-              <td>{book.title}</td>
-              <td>{book.author_id}</td>
-              <td>{getAuthorName(book.author_id)}</td>
-              <td>{book.pub_year}</td>
-              <td>{book.genre}</td>
-            </tr>
+            <TableRow key={book.id}>
+              <TableCell>{book.title}</TableCell>
+              <TableCell>{getAuthorName(book.author_id)}</TableCell>
+              <TableCell>{book.pub_year}</TableCell>
+              <TableCell>{book.genre}</TableCell>
+              <TableCell>
+                <Button onClick={() => setEditBook(book)} variant="outlined">
+                  Edit
+                </Button>
+                <Button
+                  onClick={() => handleDelete(book.id)}
+                  variant="outlined"
+                  color="error"
+                  style={{ marginLeft: "10px" }}
+                >
+                  Delete
+                </Button>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
-      </div>
+        </TableBody>
+      </Table>
+
+      {/* edit book */}
+      {editBook && (
+        <Dialog open={!!editBook} onClose={() => setEditBook(null)}>
+          <DialogTitle>Edit Book</DialogTitle>
+          <DialogContent>
+            <TextField
+              fullWidth
+              label="Title"
+              value={editBook.title}
+              onChange={(e) => setEditBook({ ...editBook, title: e.target.value })}
+              margin="dense"
+            />
+            <TextField
+              fullWidth
+              label="Publication Year"
+              value={editBook.pub_year}
+              onChange={(e) => setEditBook({ ...editBook, pub_year: e.target.value })}
+              margin="dense"
+            />
+            <Select
+              fullWidth
+              value={editBook.genre}
+              onChange={(e) => setEditBook({ ...editBook, genre: e.target.value })}
+              margin="dense"
+            >
+              {GENRE_OPTIONS.map((genre) => (
+                <MenuItem key={genre} value={genre}>
+                  {genre}
+                </MenuItem>
+              ))}
+            </Select>
+            <Select
+              fullWidth
+              value={editBook.author_id}
+              onChange={(e) => setEditBook({ ...editBook, author_id: Number(e.target.value) })}
+              margin="dense"
+            >
+              {authors.map((author) => (
+                <MenuItem key={author.id} value={author.id}>
+                  {author.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleEdit} variant="contained">
+              Save
+            </Button>
+            <Button onClick={() => setEditBook(null)} variant="outlined">
+              Cancel
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
+      {/* success notif */}
+      <Snackbar
+        open={!!snackbarMessage}
+        message={snackbarMessage}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarMessage("")}
+      />
     </div>
   );
 }
