@@ -107,9 +107,10 @@ app.get("/books", async (req, res) => {
     let { pub_year, genre } = req.query;
     let query = "SELECT * FROM books WHERE 1=1";
     let params: string[] = [];
+    //console.log(req.query);
   
     if (pub_year) {
-      query += " AND pub_year >= ?";
+      query += " AND CAST(pub_year AS INT) >= ?";
       params.push(pub_year as string);
     }
     if (genre) {
@@ -140,6 +141,7 @@ app.delete("/books/:id", async (req, res) => {
 
 // add a book
 app.post("/books", async (req, res) => {
+  //console.log(req.body);
     let parseResult = bookSchema.omit({ id: true }).safeParse(req.body); // exclude id for validation cus it's auto generated
     if (!parseResult.success) {
         return res.status(400).json({ errors: parseError(parseResult.error) });
@@ -163,6 +165,38 @@ app.post("/books", async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: (error as Error).message });
     }
+});
+
+//update book
+app.patch("/books/:id", async (req, res) => {
+  let id = parseInt(req.params.id);
+  let parseResult = bookSchema.omit({ id: true }).safeParse(req.body); // exclude id for validation cus it's auto generated
+  //console.log(req.body);
+  if (!parseResult.success) {
+      return res.status(400).json({ errors: parseError(parseResult.error) });
+  }
+
+  let { author_id, title, pub_year, genre } = parseResult.data;
+  //console.log(title, author_id, pub_year, genre);
+
+  try {
+    let updated = await db.run(
+      "UPDATE books SET title = ?, author_id = ?, pub_year = ?, genre = ? WHERE id = ?",
+      [title, author_id, pub_year, genre, id]
+    );
+    if (updated.changes === 0) {
+      return res.status(404).json({ error: "Book not found" });
+    }
+    res.json({ message: "Book updated successfully." });
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.delete("/tests/reset", async (req, res) => {
+  await db.run("DELETE FROM books");
+  await db.run("DELETE FROM authors");
+  res.send({ message: "Test database reset." });
 });
 
 // run server
