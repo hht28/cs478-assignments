@@ -2,7 +2,7 @@ import express, { Request, Response } from "express";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 import * as url from "url";
-import { z } from "zod";
+import z from "zod";
 import cors from "cors";
 
 let app = express();
@@ -105,7 +105,7 @@ app.delete("/authors/:id", async (req, res) => {
 // get all books with optional query filters
 app.get("/books", async (req, res) => {
     let { pub_year, genre } = req.query;
-    let query = "SELECT * FROM books WHERE 1=1";
+    let query = "SELECT * FROM books WHERE 1=1"; //acts like a placeholder so i can dynamically add more conditions to the query
     let params: string[] = [];
     //console.log(req.query);
   
