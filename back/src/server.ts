@@ -4,10 +4,18 @@ import { open } from "sqlite";
 import * as url from "url";
 import z from "zod";
 import cors from "cors";
+import argon2 from "argon2";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
+
+type AuthenticatedRequest = Request & { user?: { id: number; username: string } };
+
+const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key";
 
 let app = express();
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
 
 // create database "connection"
 // use absolute path to avoid this issue
@@ -21,6 +29,12 @@ let db = await open({
 await db.get("PRAGMA foreign_keys = ON");
 
 // the schemas
+
+let userSchema = z.object({
+  username: z.string().min(3),
+  password: z.string().min(6),
+});
+
 let authorSchema = z.object({
     id: z.number().int().optional(), 
     name: z.string(),
@@ -35,15 +49,27 @@ let bookSchema = z.object({
     genre: z.enum(["adventure", "sci-fi", "romance", "mystery", "fantasy", "non-fiction"]),
 });
 
-  function parseError(zodError: z.ZodError): string[] {
-    let { formErrors, fieldErrors } = zodError.flatten();
-    return [
-        ...formErrors,
-        ...Object.entries(fieldErrors).map(
-            ([property, message]) => `"${property}": ${message}`
-        ),
-    ];
+function parseError(zodError: z.ZodError): string[] {
+  let { formErrors, fieldErrors } = zodError.flatten();
+  return [
+      ...formErrors,
+      ...Object.entries(fieldErrors).map(
+          ([property, message]) => `"${property}": ${message}`
+      ),
+  ];
 }
+
+let authenticateUser = (req: AuthenticatedRequest, res: Response, next: Function) => {
+  let token = req.cookies?.token;
+  if (!token) return res.status(401).json({ error: "Unauthorized: No token provided" });
+  try {
+      let decoded = jwt.verify(token, JWT_SECRET) as { id: number; username: string };
+      req.user = decoded;
+      next();
+  } catch (error) {
+      return res.status(403).json({ error: "Forbidden: Invalid token" });
+  }
+};
   
 // add author
 app.post("/authors", async (req, res) => {
@@ -99,8 +125,6 @@ app.delete("/authors/:id", async (req, res) => {
       return res.status(500).json({ error: "Internal server error." });
     }
   });
-  
-
 
 // get all books with optional query filters
 app.get("/books", async (req, res) => {
@@ -193,10 +217,53 @@ app.patch("/books/:id", async (req, res) => {
   }
 });
 
+// reset database for testing
 app.delete("/tests/reset", async (req, res) => {
   await db.run("DELETE FROM books");
   await db.run("DELETE FROM authors");
   res.send({ message: "Test database reset." });
+});
+
+// register a new user
+app.post("/register", async (req, res) => {
+  let parseResult = userSchema.safeParse(req.body);
+  if (!parseResult.success) {
+      return res.status(400).json({ errors: parseResult.error.format() });
+  }
+
+  let { username, password } = parseResult.data;
+  let existingUser = await db.get("SELECT * FROM users WHERE username = ?", username);
+  if (existingUser) {
+      return res.status(400).json({ error: "Username already taken" });
+  }
+
+  let hashedPassword = await argon2.hash(password);
+  await db.run("INSERT INTO users (username, password) VALUES (?, ?)", username, hashedPassword);
+  res.status(201).json({ message: "User registered successfully" });
+});
+
+// login user
+app.post("/login", async (req, res) => {
+  let { username, password } = req.body;
+  let user = await db.get("SELECT * FROM users WHERE username = ?", username);
+  if (!user || !(await argon2.verify(user.password, password))) {
+      return res.status(401).json({ error: "Invalid username or password" });
+  }
+  
+  let token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: "1h" });
+  res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "strict" });
+  res.json({ message: "Login successful" });
+});
+
+// logout user
+app.post("/logout", (req, res) => {
+  res.clearCookie("token");
+  res.json({ message: "Logout successful" });
+});
+
+// test protected route
+app.get("/profile", authenticateUser, (req: AuthenticatedRequest, res: Response) => {
+  res.json({ message: `Welcome, ${req.user?.username}!` });
 });
 
 // run server
