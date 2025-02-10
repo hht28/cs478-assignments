@@ -13,9 +13,15 @@ type AuthenticatedRequest = Request & { user?: { id: number; username: string } 
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key";
 
 let app = express();
-app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
 // create database "connection"
 // use absolute path to avoid this issue
@@ -221,30 +227,41 @@ app.patch("/books/:id", async (req, res) => {
 app.delete("/tests/reset", async (req, res) => {
   await db.run("DELETE FROM books");
   await db.run("DELETE FROM authors");
+  await db.run("DELETE FROM users");
   res.send({ message: "Test database reset." });
 });
 
 // register a new user
 app.post("/register", async (req, res) => {
+  console.log("Received registration request:", req.body); // Debugging
   let parseResult = userSchema.safeParse(req.body);
   if (!parseResult.success) {
-      return res.status(400).json({ errors: parseResult.error.format() });
+    console.error("Validation error:", parseResult.error); // Debugging
+    return res.status(400).json({
+      error: "Validation failed",
+      details: parseResult.error.flatten(), // Provide detailed validation errors
+    });
   }
 
   let { username, password } = parseResult.data;
+  console.log("Parsed username and password:", username, password); // Debugging
   let existingUser = await db.get("SELECT * FROM users WHERE username = ?", username);
   if (existingUser) {
-      return res.status(400).json({ error: "Username already taken" });
+    console.error("Username already taken:", username); // Debugging
+    return res.status(400).json({ error: "Username already taken" });
   }
 
   let hashedPassword = await argon2.hash(password);
   await db.run("INSERT INTO users (username, password) VALUES (?, ?)", username, hashedPassword);
+  console.log("User registered successfully:", username); // Debugging
   res.status(201).json({ message: "User registered successfully" });
 });
 
 // login user
 app.post("/login", async (req, res) => {
   let { username, password } = req.body;
+  console.log(username, password);
+  
   let user = await db.get("SELECT * FROM users WHERE username = ?", username);
   if (!user || !(await argon2.verify(user.password, password))) {
       return res.status(401).json({ error: "Invalid username or password" });

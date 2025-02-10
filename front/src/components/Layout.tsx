@@ -1,13 +1,27 @@
 import { Link, Outlet } from "react-router-dom";
+import { useContext } from "react";
+import { AuthContext } from "../contexts/AuthContext";
 import "./Layout.css";
 
 function Header() {
+  const auth = useContext(AuthContext);
+
   return (
     <>
       <Link to="/">Home</Link>
-      <Link to="/add-author">Add Author</Link>
-      <Link to="/add-book">Add Book</Link>
-      <Link to="/search-books">Search Books</Link>
+      {auth?.user ? (
+        <>
+          <Link to="/add-author">Add Author</Link>
+          <Link to="/add-book">Add Book</Link>
+          <Link to="/search-books">Search Books</Link>
+          <button onClick={auth.logout}>Logout</button>
+        </>
+      ) : (
+        <>
+          <Link to="/login">Login</Link>
+          <Link to="/signup">Signup</Link>
+        </>
+      )}
     </>
   );
 }
