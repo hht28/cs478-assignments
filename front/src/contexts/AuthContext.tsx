@@ -1,47 +1,51 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState } from "react";
 import axios from "axios";
 
 interface AuthContextType {
-  user: string | null;
+  user: { id: number; username: string } | null;
   token: string | null;
   login: (username: string, password: string) => Promise<void>;
   signup: (username: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+export let AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<string | null>(localStorage.getItem("user"));
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
+export let AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  let [user, setUser] = useState<{ id: number; username: string } | null>(null);
+  let [token, setToken] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    } else {
-      delete axios.defaults.headers.common["Authorization"];
-    }
-  }, [token]);
-
-  const login = async (username: string, password: string) => {
+  let login = async (username: string, password: string) => {
     try {
       console.log("Calling /login endpoint with:", { username, password });
       let response = await axios.post("http://localhost:3000/login", { username, password });
-      console.log("Login response:", response.data); 
-      setUser(username);
-      setToken(response.data.token);
-      localStorage.setItem("user", username);
-      localStorage.setItem("token", response.data.token);
+      console.log("Login response:", response.data);
+
+      let { token, user } = response.data; 
+      if (!token) {
+        throw new Error("Token not found in response");
+      }
+
+      setUser({ id: user.id, username: user.username }); // store user as an object
+      setToken(token);
+      localStorage.setItem("user", JSON.stringify({ id: user.id, username: user.username })); // store user object in localStorage
+      localStorage.setItem("token", token);
+      
+      //update token for debugging purposes
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+      console.log("Login successful, token set:", token);
+      console.log("User:", user);
     } catch (error) {
       console.error("Login failed:", error);
       throw new Error("Invalid credentials");
     }
   };
 
-const signup = async (username: string, password: string) => {
+let signup = async (username: string, password: string) => {
   try {
     console.log("Calling /register endpoint with:", { username, password });
-    const response = await axios.post("http://localhost:3000/register", {
+    let response = await axios.post("http://localhost:3000/register", {
       username,
       password,
     });
@@ -53,7 +57,7 @@ const signup = async (username: string, password: string) => {
   }
 };
 
-  const logout = () => {
+  let logout = () => {
     setUser(null);
     setToken(null);
     localStorage.removeItem("user");

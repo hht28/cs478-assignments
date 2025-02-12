@@ -8,6 +8,12 @@ function Header() {
 
   return (
     <>
+      {auth?.user && (
+        <div style={{ marginBottom: "10px" }}>
+          Welcome, {auth.user.username}!
+        </div>
+      )}
+
       <Link to="/">Home</Link>
       {auth?.user ? (
         <>

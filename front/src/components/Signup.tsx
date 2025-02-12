@@ -2,14 +2,14 @@ import React, { useContext, useState } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-const Signup: React.FC = () => {
-  const auth = useContext(AuthContext);
-  const navigate = useNavigate();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+let Signup: React.FC = () => {
+  let auth = useContext(AuthContext);
+  let navigate = useNavigate();
+  let [username, setUsername] = useState("");
+  let [password, setPassword] = useState("");
+  let [error, setError] = useState<string | null>(null);
 
-  const validateInputs = () => {
+  let validateInputs = () => {
     if (username.length < 3) {
       setError("Username must be at least 3 characters long.");
       return false;
@@ -21,19 +21,18 @@ const Signup: React.FC = () => {
     return true;
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
+  let handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null); // Clear previous errors
+    setError(null);
 
-    // Validate inputs before making the request
     if (!validateInputs()) {
       return;
     }
 
     try {
-      console.log("Calling auth.signup with:", { username, password });
+      //console.log("Calling auth.signup with:", { username, password });
       await auth?.signup(username, password);
-      console.log("Signup successful, redirecting...");
+      //console.log("Signup successful, redirecting...");
       navigate("/");
     } catch (err) {
       console.error("Signup error:", err); 
