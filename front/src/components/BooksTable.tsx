@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { Book, Author } from "../types.ts";
 import {
@@ -17,6 +17,7 @@ import {
   MenuItem,
   Snackbar,
 } from "@mui/material";
+import { AuthContext } from "../contexts/AuthContext";
 
 let GENRE_OPTIONS = ["adventure", "sci-fi", "romance", "mystery", "fantasy", "non-fiction"];
 
@@ -27,6 +28,9 @@ export default function BooksTable() {
   let [error, setError] = useState<string | null>(null);
   let [editBook, setEditBook] = useState<Book | null>(null);
   let [snackbarMessage, setSnackbarMessage] = useState("");
+
+  let auth = useContext(AuthContext);
+  let isLoggedIn = !!auth?.user; 
 
   useEffect(() => {
     let fetchBooksAndAuthors = async () => {
@@ -55,35 +59,57 @@ export default function BooksTable() {
   };
 
   let handleEdit = async () => {
-    if (editBook) {
+    if (editBook && auth?.token) {
       try {
         let updatedBook = {
           ...editBook,
           author_id: Number(editBook.author_id),
         };
 
-        await axios.patch(`http://localhost:3000/books/${editBook.id}`, updatedBook);
-        
+        await axios.patch(
+          `http://localhost:3000/books/${editBook.id}`,
+          updatedBook,
+          {
+            headers: {
+              Authorization: `Bearer ${auth.token}`,
+            },
+          }
+        );
+
         setBooks((prevBooks) =>
           prevBooks.map((b) => (b.id === editBook.id ? updatedBook : b))
         );
 
         setSnackbarMessage("Book updated successfully!");
       } catch (error) {
-        setSnackbarMessage("Failed to update book.");
+        if (axios.isAxiosError(error)) {
+          let serverErrorMessage = error.response?.data?.error || "Failed to update book.";
+          setSnackbarMessage(serverErrorMessage);
+        } else {
+          setSnackbarMessage("Failed to update book.");
+        }
       }
       setEditBook(null);
     }
   };
 
   let handleDelete = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this book?")) {
+    if (window.confirm("Are you sure you want to delete this book?") && auth?.token) {
       try {
-        await axios.delete(`http://localhost:3000/books/${id}`);
+        await axios.delete(`http://localhost:3000/books/${id}`, {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+          },
+        });
         setBooks((prevBooks) => prevBooks.filter((book) => book.id !== id));
         setSnackbarMessage("Book deleted successfully!");
       } catch (error) {
-        setSnackbarMessage("Failed to delete book.");
+        if (axios.isAxiosError(error)) {
+          let serverErrorMessage = error.response?.data?.error || "Failed to delete book.";
+          setSnackbarMessage(serverErrorMessage);
+        } else {
+          setSnackbarMessage("Failed to delete book.");
+        }
       }
     }
   };
@@ -106,7 +132,7 @@ export default function BooksTable() {
             <TableCell>Author</TableCell>
             <TableCell>Publication Year</TableCell>
             <TableCell>Genre</TableCell>
-            <TableCell>Actions</TableCell>
+            {isLoggedIn && <TableCell>Actions</TableCell>} {/* show actions column only if logged in */}
           </TableRow>
         </TableHead>
         <TableBody>
@@ -116,19 +142,21 @@ export default function BooksTable() {
               <TableCell>{getAuthorName(book.author_id)}</TableCell>
               <TableCell>{book.pub_year}</TableCell>
               <TableCell>{book.genre}</TableCell>
-              <TableCell>
-                <Button onClick={() => setEditBook(book)} variant="outlined">
-                  Edit
-                </Button>
-                <Button
-                  onClick={() => handleDelete(book.id)}
-                  variant="outlined"
-                  color="error"
-                  style={{ marginLeft: "10px" }}
-                >
-                  Delete
-                </Button>
-              </TableCell>
+              {isLoggedIn && ( 
+                <TableCell>
+                  <Button onClick={() => setEditBook(book)} variant="outlined">
+                    Edit
+                  </Button>
+                  <Button
+                    onClick={() => handleDelete(book.id)}
+                    variant="outlined"
+                    color="error"
+                    style={{ marginLeft: "10px" }}
+                  >
+                    Delete
+                  </Button>
+                </TableCell>
+              )}
             </TableRow>
           ))}
         </TableBody>
