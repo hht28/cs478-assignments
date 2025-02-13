@@ -1,6 +1,7 @@
 import { useState, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../contexts/AuthContext";
+import { TextField, Button, Snackbar } from "@mui/material";
 
 export default function AddAuthorForm() {
   let [name, setName] = useState("");
@@ -10,15 +11,17 @@ export default function AddAuthorForm() {
 
   let handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!auth?.user) {
       setMessage("You must be logged in to add an author.");
       return;
     }
 
     try {
+      let creator_id = auth.user.id; 
       await axios.post(
         "http://localhost:3000/authors",
-        { name, bio },
+        { name, bio, creator_id },
         {
           headers: { Authorization: `Bearer ${auth.token}` },
         }
@@ -27,7 +30,12 @@ export default function AddAuthorForm() {
       setName("");
       setBio("");
     } catch (error) {
-      setMessage("Failed to add author.");
+      if (axios.isAxiosError(error)) {
+        let serverErrorMessage = error.response?.data?.error || "Failed to add book.";
+        setMessage(serverErrorMessage);
+      } else {
+        setMessage("Failed to add book.");
+      }
     }
   };
 
@@ -37,23 +45,35 @@ export default function AddAuthorForm() {
       {auth?.user ? (
         <>
           <div>
-            <label>
-              Name:
-              <input value={name} onChange={(e) => setName(e.target.value)} required />
-            </label>
+            <TextField
+              fullWidth
+              label="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              margin="normal"
+            />
           </div>
           <div>
-            <label>
-              Bio:
-              <textarea value={bio} onChange={(e) => setBio(e.target.value)} required />
-            </label>
+            <TextField
+              fullWidth
+              label="Bio"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              required
+              margin="normal"
+              multiline
+              rows={4}
+            />
           </div>
-          <button type="submit">Add Author</button>
+          <Button type="submit" variant="contained" color="primary">
+            Add Author
+          </Button>
         </>
       ) : (
         <p>Please log in to add an author.</p>
       )}
-      {message && <p>{message}</p>}
+      {message && <Snackbar open={!!message} message={message} autoHideDuration={3000} onClose={() => setMessage("")} />}
     </form>
   );
 }
